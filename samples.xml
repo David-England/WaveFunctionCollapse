@@ -90,4 +90,6 @@
   <simpletiled name="Knots" subset="Standard" size="5" periodic="True" textOutput="True"/>
   <simpletiled name="Summer" size="6" periodic="False" textOutput="True"/>
   <simpletiled name="Circuit" subset="Turnless" size="7" periodic="True" textOutput="True"/>
+
+  <overlapping name="blue" N="3"/>
 </samples>
