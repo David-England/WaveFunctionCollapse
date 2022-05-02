@@ -9,69 +9,72 @@ The software is provided "as is", without warranty of any kind, express or impli
 using System;
 using System.Xml.Linq;
 using System.Diagnostics;
+using System.Drawing;
 
 namespace WaveFunctionCollapse
 {
-    static class Top
+    public static class Top
     {
-        static void Main()
+        public static Bitmap Fire(string name, bool isOverlapping = true, int? height = null,
+            string heuristic = "entropy", int limit = -1, int maxAttempts = 10, bool isPeriodic = false, int? size = null, bool isTextOutput = false, int? width = null,
+            /* overlapping model params */ int ground = 0, int n = 3, bool isPeriodicInput = true, int symmetry = 8,
+            /* simpletiled model params */ bool isBlackBackground = false, string subset = null)
         {
-            Stopwatch sw = Stopwatch.StartNew();
+            SetNullables();
 
-            Random random = new Random();
-            XDocument xdoc = XDocument.Load("samples.xml");
+            return RunModelUntilSuccess(ConfigureModel());
 
-            foreach (XElement xelem in xdoc.Root.Elements("overlapping", "simpletiled"))
+            void SetNullables()
             {
-                Model model;
-                string name = xelem.Get<string>("name");
-                Console.WriteLine($"< {name}");
+                size ??= (isOverlapping ? 48 : 24);
 
-                bool isOverlapping = xelem.Name == "overlapping";
-                int size = xelem.Get("size", isOverlapping ? 48 : 24);
-                int width = xelem.Get("width", size);
-                int height = xelem.Get("height", size);
-                bool periodic = xelem.Get("periodic", false);
-                string heuristicString = xelem.Get<string>("heuristic");
-                var heuristic = heuristicString == "Scanline" ? Model.Heuristic.Scanline : (heuristicString == "MRV" ? Model.Heuristic.MRV : Model.Heuristic.Entropy);
+                height ??= size;
+                width ??= size;
+            }
 
+            Model ConfigureModel()
+            {
                 if (isOverlapping)
                 {
-                    int N = xelem.Get("N", 3);
-                    bool periodicInput = xelem.Get("periodicInput", true);
-                    int symmetry = xelem.Get("symmetry", 8);
-                    int ground = xelem.Get("ground", 0);
-
-                    model = new OverlappingModel(name, N, width, height, periodicInput, periodic, symmetry, ground, heuristic);
+                    return new OverlappingModel(name, n, width.Value, height.Value, isPeriodicInput, isPeriodic, symmetry, ground, SetHeuristic(heuristic));
                 }
                 else
                 {
-                    string subset = xelem.Get<string>("subset");
-                    bool blackBackground = xelem.Get("blackBackground", false);
-
-                    model = new SimpleTiledModel(name, subset, width, height, periodic, blackBackground, heuristic);
-                }
-
-                for (int i = 0; i < xelem.Get("screenshots", 2); i++)
-                {
-                    for (int k = 0; k < 10; k++)
-                    {
-                        Console.Write("> ");
-                        int seed = random.Next();
-                        bool success = model.Run(seed, xelem.Get("limit", -1));
-                        if (success)
-                        {
-                            Console.WriteLine("DONE");
-                            model.Graphics().Save($"{name} {seed}.png");
-                            if (model is SimpleTiledModel stmodel && xelem.Get("textOutput", false)) System.IO.File.WriteAllText($"{name} {seed}.txt", stmodel.TextOutput());
-                            break;
-                        }
-                        else Console.WriteLine("CONTRADICTION");
-                    }
+                    return new SimpleTiledModel(name, subset, width.Value, height.Value, isPeriodic, isBlackBackground, SetHeuristic(heuristic));
                 }
             }
 
-            Console.WriteLine($"time = {sw.ElapsedMilliseconds}");
+            Bitmap RunModelUntilSuccess(Model model)
+            {
+                Random random = new Random();
+                
+                for (int attempt = 0; attempt < maxAttempts; attempt++)
+                {
+                    bool success = model.Run(random.Next(), limit);
+
+                    if (success)
+                    {
+                        return model.Graphics();
+                    }
+                }
+
+                throw new Exception();
+            }
+        }
+        
+        private static Model.Heuristic SetHeuristic(string heuristicString)
+        {
+            switch (heuristicString.ToLower())
+            {
+                case "entropy":
+                    return Model.Heuristic.Entropy;
+                case "mrv":
+                    return Model.Heuristic.MRV;
+                case "scanline":
+                    return Model.Heuristic.Scanline;
+                default:
+                    throw new Exception();
+            }
         }
     }
 }
