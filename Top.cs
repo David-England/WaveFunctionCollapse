@@ -7,8 +7,6 @@ The software is provided "as is", without warranty of any kind, express or impli
 */
 
 using System;
-using System.Xml.Linq;
-using System.Diagnostics;
 using System.Drawing;
 
 namespace WaveFunctionCollapse
@@ -36,11 +34,11 @@ namespace WaveFunctionCollapse
             {
                 if (isOverlapping)
                 {
-                    return new OverlappingModel(name, n, width.Value, height.Value, isPeriodicInput, isPeriodic, symmetry, ground, SetHeuristic(heuristic));
+                    return new OverlappingModel(name, n, width.Value, height.Value, isPeriodicInput, isPeriodic, symmetry, ground, ChooseHeuristic(heuristic));
                 }
                 else
                 {
-                    return new SimpleTiledModel(name, subset, width.Value, height.Value, isPeriodic, isBlackBackground, SetHeuristic(heuristic));
+                    return new SimpleTiledModel(name, subset, width.Value, height.Value, isPeriodic, isBlackBackground, ChooseHeuristic(heuristic));
                 }
             }
 
@@ -62,7 +60,7 @@ namespace WaveFunctionCollapse
             }
         }
         
-        private static Model.Heuristic SetHeuristic(string heuristicString)
+        private static Model.Heuristic ChooseHeuristic(string heuristicString)
         {
             switch (heuristicString.ToLower())
             {
